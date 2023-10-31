@@ -9,13 +9,30 @@ import { Card } from '@/components/ui/card';
 
 export default function Home() {
   const [videos, setVideos] = useState([])
-  const [searchQuery, setSearchQuery] = useState();
+  const [searchQuery, setSearchQuery] = useState('');
   const handleSearch = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.get(`/api?query=${searchQuery}`)
-      setVideos(response.data)
-      console.log(response.data)
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+      params: {
+        q: searchQuery,
+        key: process.env.NEXT_PUBLIC_KEY,
+        part: 'snippet',
+        maxResults: 15,
+        type: 'video',
+        videoDuration: 'long', 
+      },
+    });
+    const videos = response.data.items
+      .filter((item) => item.id.videoId && item.id.kind === 'youtube#video') 
+      .map((item) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        description: item.snippet.description,
+        thumbnail: item.snippet.thumbnails.high.url,
+        date: item.snippet.publishedAt
+      }));
+      setVideos(videos)
     } catch {
       console.log('error fetching videos:', error);
     }
@@ -39,7 +56,7 @@ export default function Home() {
       <div className='flex  justify-around '> 
       <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 md:gap-28'>
       {videos.map((video) => (
-        <Card className="w-[350px] text-center">
+        <Card  key={video.id} className="w-[350px] text-center">
         <a href={`video/${video.id}`} >
          <img src={video.thumbnail}  className='w-full' />
           <h1>
